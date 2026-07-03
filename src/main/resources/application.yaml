@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: storm-imdb-demo
+  autoconfigure:
+    # This application uses Storm's coroutine-native suspend transaction { }
+    # blocks exclusively. Suspend mode is incompatible with Spring-managed
+    # Storm transactions, so the Spring transaction integration is disabled;
+    # Storm manages transactions directly on the DataSource.
+    exclude:
+      - st.orm.spring.boot.autoconfigure.StormTransactionAutoConfiguration
+  datasource:
+    # Note: reWriteBatchedInserts is intentionally NOT enabled — it breaks
+    # the per-row affected counts that Storm verifies after batch writes.
+    url: jdbc:postgresql://localhost:5432/imdb
+    username: storm
+    password: storm
+  threads:
+    virtual:
+      enabled: true
+
+imdb:
+  import:
+    cache-directory: ./data
+    minimum-vote-count: 1000
