@@ -6,6 +6,9 @@ plugins {
     kotlin("plugin.serialization") version "2.2.21"
     id("com.google.devtools.ksp") version "2.2.21-2.0.5"
     id("org.springframework.boot") version "4.1.0"
+    // The Storm plugin imports the BOM, adds storm-kotlin and storm-core, wires the
+    // metamodel processor to KSP, and selects the compiler-plugin variant matching Kotlin.
+    id("st.orm") version "1.13.0"
 }
 
 group = "st.orm.demo"
@@ -26,14 +29,14 @@ repositories {
 
 dependencies {
     implementation(platform(SpringBootPlugin.BOM_COORDINATES))
-    implementation(platform("st.orm:storm-bom:1.12.0"))
-    ksp(platform("st.orm:storm-bom:1.12.0"))
-    kotlinCompilerPluginClasspath(platform("st.orm:storm-bom:1.12.0"))
 
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    // Tracer for the trace-context SQL comments; spans stay local without an exporter.
+    implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("tools.jackson.module:jackson-module-kotlin")
 
@@ -45,13 +48,12 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
 
-    ksp("st.orm:storm-metamodel-ksp")
-    kotlinCompilerPluginClasspath("st.orm:storm-compiler-plugin-2.2")
-
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("st.orm:storm-test")
+    testImplementation("st.orm:storm-spring-boot-test-autoconfigure")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("st.orm:storm-h2")
     testRuntimeOnly("com.h2database:h2:2.3.232")
     testImplementation("com.microsoft.playwright:playwright:1.61.0")

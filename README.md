@@ -85,9 +85,17 @@ Each part of the app demonstrates a Storm feature:
   references.
 - **Transactions** (`service/`): Storm's coroutine-native suspend
   `transaction { }` blocks at the service level, bridged with `runBlocking`
-  only at MVC entry points. The Spring transaction integration is deliberately
+  only at MVC entry points. Spring-managed Storm transactions are deliberately
   excluded in `application.yaml` because suspend mode manages transactions on
-  the `DataSource` directly.
+  the `DataSource` directly. `StatisticsService` is the one declarative
+  `@Transactional` example (`@Cacheable` and `@Transactional` do not support
+  suspend functions); the Storm repository calls inside it join the
+  Spring-managed transaction.
+- **Observability** (`application.yaml`): every query and transaction is
+  reported as a Micrometer Observation (`storm.query`, `storm.transaction`),
+  surfaced by Actuator at `/actuator/metrics/storm.query`. Query observations
+  follow the OpenTelemetry database semantic conventions, and the trace
+  context rides along as a SQL comment on every statement.
 - **Streaming import** (`service/ImdbDataImporter.kt`): Flow-based pipeline
   that parses TSV rows into entities and hands them to Storm's suspending
   batch insert, one pass per file, without materializing entity lists.

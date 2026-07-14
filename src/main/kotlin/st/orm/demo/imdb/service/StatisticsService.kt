@@ -9,7 +9,7 @@ import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.ProlificActor
-import st.orm.template.transactionBlocking
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * Everything the statistics page shows. Serializable, including the Storm
@@ -36,14 +36,18 @@ class StatisticsService(
      * backing cache stores the view as serialized JSON (see
      * CacheConfiguration) — safe because Storm entities are immutable.
      *
-     * Note: @Cacheable does not support suspend functions without the
-     * Reactor bridge, so this method is deliberately non-suspend and opens
-     * its transaction with transactionBlocking.
+     * This is the one declarative example in this application: the rest of
+     * the services use Storm's programmatic transaction { } API. Both run
+     * through the same Spring transaction manager, so they compose freely —
+     * the Storm repository calls below join this @Transactional transaction.
+     * (@Cacheable and @Transactional do not support suspend functions
+     * without the Reactor bridge, so this method is deliberately blocking.)
      */
     @Cacheable(STATISTICS_CACHE)
-    fun buildStatisticsView(): StatisticsView = transactionBlocking(readOnly = true) {
+    @Transactional(readOnly = true)
+    fun buildStatisticsView(): StatisticsView {
         val decades = movieRepository.countMoviesPerDecade()
-        StatisticsView(
+        return StatisticsView(
             decades = decades,
             maxDecadeCount = decades.maxOfOrNull { it.movieCount } ?: 1L,
             genreStatistics = movieGenreRepository.findGenreRatingStatistics(
