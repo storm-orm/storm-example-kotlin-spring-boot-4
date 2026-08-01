@@ -21,9 +21,6 @@ java {
 }
 
 repositories {
-    // mavenLocal first so locally built Storm versions (not yet on Central)
-    // resolve during development against the framework.
-    mavenLocal()
     mavenCentral()
 }
 
