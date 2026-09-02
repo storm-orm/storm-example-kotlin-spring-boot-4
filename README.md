@@ -114,9 +114,13 @@ Each part of the app demonstrates a Storm feature:
 ./gradlew test
 ```
 
-Repository tests run on an in-memory H2 database via `@StormTest`, so no
-Docker is required. Tests receive an `ORMTemplate` and a `SqlCapture` as parameters, so
-they can assert on the SQL Storm generates.
+Repository tests run on an in-memory H2 database via `@StormTest`. Tests receive
+an `ORMTemplate` and a `SqlCapture` as parameters, so they can assert on the SQL
+Storm generates. `EntitySchemaValidationTest` runs on PostgreSQL instead, through
+`@StormTest(database = POSTGRESQL)`: Storm starts a Testcontainers-managed
+PostgreSQL once per test run and applies the Flyway migration to it, so the
+entities are validated against the schema and dialect the application deploys
+with. That one test needs Docker, like running the application does.
 
 The Playwright interface tests run against a live application:
 

@@ -53,6 +53,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testRuntimeOnly("st.orm:storm-h2")
     testRuntimeOnly("com.h2database:h2:2.3.232")
+    // EntitySchemaValidationTest runs on PostgreSQL through @StormTest(database = POSTGRESQL);
+    // the module starts the container, the driver above is on the test runtime classpath already.
+    testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("com.microsoft.playwright:playwright:1.61.0")
 }
 
