@@ -8,7 +8,7 @@ plugins {
     id("org.springframework.boot") version "4.1.0"
     // The Storm plugin imports the BOM, adds storm-kotlin and storm-core, wires the
     // metamodel processor to KSP, and selects the compiler-plugin variant matching Kotlin.
-    id("st.orm") version "1.13.1"
+    id("st.orm") version "1.14.0"
 }
 
 group = "st.orm.demo"
