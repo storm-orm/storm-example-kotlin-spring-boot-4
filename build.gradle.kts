@@ -21,8 +21,6 @@ java {
 }
 
 repositories {
-    // TEMPORARY: resolves Storm 1.14.0 from a local build. Remove once it is on Maven Central.
-    mavenLocal()
     mavenCentral()
 }
 
