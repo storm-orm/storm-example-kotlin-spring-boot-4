@@ -46,7 +46,7 @@ class BrowseService(
         transaction(readOnly = true) {
             val genre = genreRepository.findByName(genreName) ?: return@transaction null
             val scrollable = if (cursor != null) {
-                Scrollable.fromCursor(MovieSummary_.id, cursor)
+                Scrollable.of(MovieSummary_.id, PAGE_SIZE).from(cursor)
             } else {
                 Scrollable.of(MovieSummary_.id, PAGE_SIZE)
             }
