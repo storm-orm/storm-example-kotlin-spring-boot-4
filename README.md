@@ -97,6 +97,12 @@ Each part of the app demonstrates a Storm feature:
   surfaced by Actuator at `/actuator/metrics/storm.query`. Query observations
   follow the OpenTelemetry database semantic conventions, and the trace
   context rides along as a SQL comment on every statement.
+- **Reading in windows** (`service/PersonGalleryService`, `repository/PersonGalleryRepository`):
+  the scheduled gallery refresh walks the stale galleries with `windows(size)`.
+  Each window is one statement that has closed before the loop sees it, so the
+  connection is free while the loop resolves the persons and calls Wikimedia,
+  and every window is written back in one upsert. A result stream is the shape
+  for consuming rows; this is the shape for a loop that needs the database.
 - **Streaming import** (`service/ImdbDataImporter.kt`): Flow-based pipeline
   that parses TSV rows into entities and hands them to Storm's suspending
   batch insert, one pass per file, without materializing entity lists.

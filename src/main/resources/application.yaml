@@ -22,6 +22,13 @@ imdb:
   import:
     cache-directory: ./data
     minimum-vote-count: 1000
+  gallery-refresh:
+    # Galleries older than max-age are re-fetched from Wikimedia by the scheduled
+    # refresh, which reads them in keyset windows: one statement per window, the
+    # connection free in between (PersonGalleryService.refreshStaleGalleries).
+    max-age: 30d
+    interval: 6h
+    initial-delay: 1h
 
 # Storm reports every query (storm.query) and every transaction (storm.transaction) as
 # Micrometer Observations once an ObservationRegistry is present; Actuator provides one.

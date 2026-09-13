@@ -2,8 +2,11 @@ package st.orm.demo.imdb.service
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.PersonGallery
@@ -20,10 +23,14 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.charset.StandardCharsets
+import java.time.Duration
 import java.time.Instant
 
 /** Galleries are only useful in small doses; keep the first dozen photos. */
 private const val MAX_GALLERY_PHOTOS = 12
+
+/** Galleries refreshed per window: one read and one write per this many people. */
+private const val REFRESH_WINDOW_SIZE = 50
 
 private val logger = LoggerFactory.getLogger(PersonGalleryService::class.java)
 
@@ -40,7 +47,8 @@ class PersonGalleryService(
     private val personRepository: PersonRepository,
     private val personGalleryRepository: PersonGalleryRepository,
     private val wikipediaSummaryService: WikipediaSummaryService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    @Value("\${imdb.gallery-refresh.max-age}") private val maxAge: Duration
 ) {
 
     private val httpClient: HttpClient = HttpClient.newBuilder()
@@ -65,6 +73,39 @@ class PersonGalleryService(
             personGalleryRepository.upsert(PersonGallery(person.ref(), photos, Instant.now()))
         }
         return photos
+    }
+
+    /**
+     * Re-fetches the galleries that have not been refreshed for `maxAge`, in
+     * windows over the key. Each window is one statement that has closed
+     * before the loop sees it, so between windows the connection is free: the
+     * loop resolves the persons, calls Wikimedia holding nothing, and writes
+     * the whole window back in one upsert. Reading the same galleries as a
+     * result stream would hold the connection until the last row and refuse
+     * every statement the loop makes.
+     */
+    @Scheduled(
+        initialDelayString = "\${imdb.gallery-refresh.initial-delay}",
+        fixedDelayString = "\${imdb.gallery-refresh.interval}"
+    )
+    fun refreshStaleGalleries() {
+        val cutoff = Instant.now().minus(maxAge)
+        var refreshed = 0
+        runBlocking {
+            personGalleryRepository.findStaleGalleries(cutoff, REFRESH_WINDOW_SIZE).collect { window ->
+                val persons = personRepository.findAllByRef(window.content().map { it.person })
+                val galleries = persons.mapNotNull { person ->
+                    fetchPhotos(person)?.let { PersonGallery(person.ref(), it, Instant.now()) }
+                }
+                if (galleries.isNotEmpty()) {
+                    transaction { personGalleryRepository.upsert(galleries) }
+                    refreshed += galleries.size
+                }
+            }
+        }
+        if (refreshed > 0) {
+            logger.info("Refreshed {} stale photo galleries.", refreshed)
+        }
     }
 
     // Main-safe: the blocking HTTP clients run on the IO dispatcher.
