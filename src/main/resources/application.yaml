@@ -37,7 +37,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,metrics
+        # The storm endpoint is Storm's control surface on the running application:
+        # GET /actuator/storm reads the SQL log settings below, POST retunes them
+        # without a restart.
+        include: health,metrics,storm
 
 # Query observations report the OpenTelemetry database semantic conventions, so the
 # spans surface in the database views of OTLP-capable backends. The trace context also
@@ -49,3 +52,18 @@ storm:
     semantic-conventions: otel
   tracing:
     sql-comments: true
+  # What the database cost is reported two ways. The performance log summarises each
+  # request that exceeds a threshold (statements, database time against total time, and
+  # the statement that carried the weight) under st.orm.sql.perf; the slow log reports a
+  # single execution that exceeds its threshold under st.orm.sql.slow, with its call site
+  # and how it compares to what its shape typically costs. Both thresholds are production
+  # grade, so the logs stay quiet until something is wrong; lower them at runtime through
+  # the storm actuator endpoint.
+  sql-log:
+    performance:
+      enabled: true
+      threshold:
+        statements: 50
+        duration: 500ms
+    slow:
+      threshold: 200ms

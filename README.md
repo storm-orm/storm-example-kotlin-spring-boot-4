@@ -106,6 +106,12 @@ Each part of the app demonstrates a Storm feature:
 - **Streaming import** (`service/ImdbDataImporter.kt`): Flow-based pipeline
   that parses TSV rows into entities and hands them to Storm's suspending
   batch insert, one pass per file, without materializing entity lists.
+- **SQL logging** (`application.yaml`): the performance log summarises what each
+  request cost the database, the slow log reports a single execution that takes
+  too long, with its call site and how it compares to what its shape typically
+  costs. Both thresholds are set for production, so the logs stay quiet until
+  something is wrong; `/actuator/storm` reads and retunes them on the running
+  application.
 - **Schema validation**: on by default. The starter verifies every entity
   against the live database schema at startup;
   `EntitySchemaValidationTest` does the same in the test suite.
