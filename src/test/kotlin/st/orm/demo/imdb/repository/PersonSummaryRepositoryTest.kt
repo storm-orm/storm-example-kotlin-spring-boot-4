@@ -37,6 +37,16 @@ class PersonSummaryRepositoryTest {
             personSummaryRepository.findNameSuggestions("an", 10)
         }
         capture.printStatements("findNameSuggestions")
-        assertEquals(listOf("Keanu Reeves", "Morgan Freeman"), suggestions.map { it.primaryName })
+        assertEquals(listOf("Keanu Reeves", "Lana Wachowski", "Morgan Freeman"), suggestions.map { it.primaryName })
+    }
+
+    @Test
+    fun `searchByName matches every word of the query in any order`(orm: ORMTemplate) {
+        val personSummaryRepository = orm.repository<PersonSummaryRepository>()
+        fun names(query: String) =
+            personSummaryRepository.searchByName(query, Scrollable.of(PersonSummary_.id, 10))
+                .content().map { it.primaryName }
+        assertEquals(listOf("Keanu Reeves"), names("reeves keanu"))
+        assertEquals(emptyList<String>(), names("keanu freeman"))
     }
 }

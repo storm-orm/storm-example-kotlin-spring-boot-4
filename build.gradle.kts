@@ -4,9 +4,6 @@ plugins {
     kotlin("jvm") version "2.2.21"
     kotlin("plugin.spring") version "2.2.21"
     kotlin("plugin.serialization") version "2.2.21"
-    // Kotlin 2.2 pairs with its own KSP build, so KSP is declared here; from Kotlin 2.3 on
-    // the Storm plugin applies the KSP it bundles.
-    id("com.google.devtools.ksp") version "2.2.21-2.0.5"
     id("org.springframework.boot") version "4.1.0"
     // The Storm plugin imports the BOM, adds storm-kotlin and storm-core, wires the
     // metamodel processor to KSP, and selects the compiler-plugin variant matching Kotlin.
