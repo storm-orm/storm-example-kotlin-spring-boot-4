@@ -9,29 +9,30 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DuplicateKeyException
+import org.springframework.test.context.jdbc.Sql
 import org.springframework.test.context.transaction.TestTransaction
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.spring.boot.test.DataStormTest
+import st.orm.test.TestDatabase
 import java.time.Instant
 
 /**
  * The @DataStormTest slice: the counterpart of @DataJpaTest for Storm. Unlike the @StormTest-based
  * tests in this package, which test data logic without a Spring context, the slice sees what production
  * code sees — repositories as Spring beans, the Spring-managed transaction, and SQL failures translated
- * to Spring's DataAccessException hierarchy. The properties attribute points the slice at an in-memory
- * database. The migration is PostgreSQL's own (trigram indexes, unaccent), so the slice creates the
- * schema from the H2 mirror the @StormTest classes use, through Spring's script initialization, which
- * loads the fixture with it; each test's own writes roll back afterwards. EntitySchemaValidationTest
- * checks the entities against the migration itself.
+ * to Spring's DataAccessException hierarchy. The database attribute points the slice at PostgreSQL in a
+ * Testcontainers-managed container, as the migration uses PostgreSQL's own features (trigram indexes,
+ * unaccent). Flyway creates the schema exactly as in production, the fixture loads once through @Sql,
+ * and each test's own writes roll back afterwards.
  */
 @TestMethodOrder(OrderAnnotation::class)
-// The slice replaces the PostgreSQL DataSource with an embedded database on Boot 3 and 4 alike.
-// Flyway (included in the slice) stays off, as the migration does not run on H2; schema.sql and
-// data.sql create and fill the database before Storm validates the entities against it.
+// The slice replaces the application's DataSource with one on a PostgreSQL container of its own.
+// Flyway (included in the slice) creates the schema, as in production; the H2 schema.sql used by the
+// @StormTest classes stays out of the way.
 @DataStormTest(
+    database = TestDatabase.POSTGRESQL,
     properties = [
-        "spring.flyway.enabled=false",
-        "spring.sql.init.mode=always",
+        "spring.sql.init.mode=never",
         // The application excludes the Spring transaction bridge because it uses the coroutine-native
         // suspend transaction { } blocks. The slice re-enables the bridge: repository calls in tests are
         // blocking, and joining the Spring-managed test transaction is what makes the rollback work.
@@ -40,6 +41,7 @@ import java.time.Instant
 )
 // The fixture loads once per context (committed): genre ids are identity-generated, and identity
 // sequences do not roll back, so a per-method fixture would drift away from its foreign keys.
+@Sql(scripts = ["/data.sql"], executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class WatchlistSliceTest(
     @Autowired private val movieRepository: MovieRepository,
     @Autowired private val watchlistRepository: WatchlistRepository,
